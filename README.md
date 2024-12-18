@@ -1,174 +1,336 @@
-# just-the-docs-template
+# BDC Downloader
 
-This is a *bare-minimum* template to create a [Jekyll] site that:
+<p style="color: red;">Webapp for ordering, downloading and slicing measurement data files.</p>
 
-- uses the [Just the Docs] theme;
-- can be built and published on [GitHub Pages];
-- can be built and previewed locally, and published on other platforms.
+The app is hosted on [eXtollo](https://wiki.mercedes-benz.polygran.de/x/7QACH)
 
-More specifically, the created site:
+We use FastAPI to serve the backend using SQLAlchemy to access the SQL database.
+Locally (usually on Windows) we use uvicorn as a web server.
+In production, we use gunicorn running w/ multiple workers.
 
-- uses a gem-based approach, i.e. uses a `Gemfile` and loads the `just-the-docs` gem;
-- uses the [GitHub Pages / Actions workflow] to build and publish the site on GitHub Pages.
+## Relevant links
 
-To get started with creating a site, simply:
+Further documentation can be found in [Confluence](https://gsep.daimler.com/confluence/pages/viewpage.action?pageId=638497518)
 
-1. click "[use this template]" to create a GitHub repository
-2. go to Settings > Pages > Build and deployment > Source, and select GitHub Actions
+The following tech stack is used:
 
-If you want to maintain your docs in the `docs` directory of an existing project repo, see [Hosting your docs from an existing project repo](#hosting-your-docs-from-an-existing-project-repo).
+- [Python 3.9](https://www.python.org/downloads/release/python-390/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [SQLAlchemy 1.4](https://www.sqlalchemy.org/)
+- [Pydantic model](https://pydantic-docs.helpmanual.io/)
+- [Gunicorn](https://gunicorn.org/) / [Uvicorn](https://www.uvicorn.org/)
+- MS SQL (on premises) and [Azure SQL](https://azure.microsoft.com/en-us/products/azure-sql/database/) on DEV / PROD
+- [tox](https://tox.readthedocs.io/en/latest/) for testing
+- [Sphinx](https://www.sphinx-doc.org/en/master/) documentation
+- [Azure pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started/what-is-azure-pipelines?view=azure-devops):
+  CI/CD, deployment, [blackduck](https://bdscan.i.mercedes-benz.com), [secret-scanner](https://git.i.mercedes-benz.com/secret-scanner/)
+- [Azure Identity](https://pypi.org/project/azure-identity/) for ADLS access
+- [Azure Storage Blob](https://pypi.org/project/azure-storage-blob/) for ADLS access
+- [Application Insights](https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview) (logging)
+- [GitHub](https://git.i.mercedes-benz.com/use-cases/2021017_downloader)
+- [flake8](https://flake8.pycqa.org/en/latest/) for Style Guide Enforcement
+- [black](https://black.readthedocs.io/en/stable/) for code formatting
+- [WARP API Lib](https://git.i.mercedes-benz.com/warp/warp-api-lib) for WARP integration
+- [BlackDuck](https://bdscan.i.mercedes-benz.com/api/projects/62255628-cffa-4ade-8d01-b742355bb8e1/versions/88e0a7fd-7216-48bf-8f76-2a49a4c5b4d1/components) for license validation
+- SecHub
+- [Loguru](https://github.com/Delgan/loguru) for logging
 
-After completing the creation of your new site on GitHub, update it as needed:
+## Guidelines
 
-## Replace the content of the template pages
+We use _google-style_ docstrings and follow `pep8` as well as `flake8` guidelines.
+Import order style is also _google_. `black` is used for code formatting.
 
-Update the following files to your own content:
+## Installation
 
-- `index.md` (your new home page)
-- `README.md` (information for those who access your site repo on GitHub)
+Install package locally:
 
-## Changing the version of the theme and/or Jekyll
+```sh
+cd 2021017_downloader
+pip install -e .
+```
 
-Simply edit the relevant line(s) in the `Gemfile`.
+for dev and prod:
+Use the devops pipelines.
 
-## Adding a plugin
+## BDC Cli
 
-The Just the Docs theme automatically includes the [`jekyll-seo-tag`] plugin.
+See [BDC CLI Readme](https://git.i.mercedes-benz.com/use-cases/2021017_downloader/blob/dev/src/devtools/README.md)
 
-To add an extra plugin, you need to add it in the `Gemfile` *and* in `_config.yml`. For example, to add [`jekyll-default-layout`]:
+Install package locally:
 
-- Add the following to your site's `Gemfile`:
+make sure to install the test and dev libs:
 
-  ```ruby
-  gem "jekyll-default-layout"
-  ```
+```sh
+cd 2021017_downloader
+pip install -e .[test|dev]
+```
 
-- And add the following to your site's `_config.yml`:
+You should now be able to type `bdc` to see the helper function of the bdc cli.
+You can find the source code in `/src/devtools/cli.py`.
+For local development via dockerfiles for mssql and maildev, create a .env file in the
+root directory of the project and specify the following:
 
-  ```yaml
-  plugins:
-    - jekyll-default-layout
-  ```
+```
+BDC_DOWNLOADER_ENVIRONMENT=LOCAL
+BDC_DOWNLOADER_BACKEND_LOG_PATH=./logs
 
-Note: If you are using a Jekyll version less than 3.5.0, use the `gems` key instead of `plugins`.
+BDC_DOWNLOADER_DB_NAME=Downloader_LOCAL
+BDC_DOWNLOADER_DB_SERVER=localhost
+BDC_DOWNLOADER_DB_USER=SA
+BDC_DOWNLOADER_DB_PASSWORD=sweudjiekdjezsrduejhs1!
+BDC_DOWNLOADER_DB_USE_LOCAL=True
+MSSQL_SA_PASSWORD=sweudjiekdjezsrduejhs1!
+BDC_DOWNLOADER_WEBAPP_URL=http://localhost:8000
 
-## Publishing your site on GitHub Pages
+BDC_DOWNLOADER_WARP_URL=https://warpapi.app.corpinter.net/warp-azure/v4
+BDC_DOWNLOADER_WARP_KEY=
+BDC_DOWNLOADER_DEBUG_SQL=False
+BDC_DOWNLOADER_MAX_ALLOWED_CHANNELS=100
+BDC_DOWNLOADER_MAX_ALLOWED_SESSIONS=30
+BDC_DOWNLOADER_MAX_ALLOWED_JOBS_PER_ORDER=10
+BDC_DOWNLOADER_MAX_ALLOWED_DIRECT_SESSIONS_PER_USER=100
+BDC_DOWNLOADER_MAX_ALLOWED_DIRECT_SESSIONS_PER_USER_DAYS_RANGE=5
+BDC_DOWNLOADER_MAX_ALLOWED_API_JOBS_PER_USER=100
+BDC_DOWNLOADER_MAX_ALLOWED_API_JOBS_PER_USER_DAYS_RANGE=5
 
-1.  If your created site is `YOUR-USERNAME/YOUR-SITE-NAME`, update `_config.yml` to:
+BDC_DOWNLOADER_SMTP_HOST=localhost:1025
+BDC_DOWNLOADER_SMTP_PORT=1025
+BDC_DOWNLOADER_SMTP_SENDER=connected-services@mercedes-benz.com
+BDC_DOWNLOADER_SMTP_REPLY_TO=noreply@mercedes-benz.com
+BDC_DOWNLOADER_LOCAL_USER_EMAIL=knapf@mercedes-benz.com
+BDC_DOWNLOADER_ADMINS=MY_EMEA_NAME;knapf
 
-    ```yaml
-    title: YOUR TITLE
-    description: YOUR DESCRIPTION
-    theme: just-the-docs
+BDC_DOWNLOADER_AZURE_WEB_APP_DEV=RD-eu-web-dev-downloader
+BDC_DOWNLOADER_AZURE_WEB_APP_PROD=RD-eu-web-prod-downloader
+BDC_DOWNLOADER_AZURE_RESOURCE_GROUP_DEV=RD-eu-rdppe-non-customer-int-linux-app
+BDC_DOWNLOADER_AZURE_RESOURCE_GROUP_PROD=rd-eu-rdppe-non-customer-linux-app
+BDC_DOWNLOADER_AZURE_SUBSCRIPTION=GC313_Sub_eXtollo-BU-RD
+BDC_DOWNLOADER_ADLS_RESOURCE_GROUP=RD-eu-rsv-rdppe-non-customer-int
 
-    url: https://YOUR-USERNAME.github.io/YOUR-SITE-NAME
+BDC_DOWNLOADER_TENANT_ID=9652d7c2-1ccf-4940-8151-4a92bd474ed0
 
-    aux_links: # remove if you don't want this link to appear on your pages
-      Template Repository: https://github.com/YOUR-USERNAME/YOUR-SITE-NAME
-    ```
+BDC_DOWNLOADER_MANAGED_IDENTITY_CLIENT_ID=not-set
+BDC_DOWNLOADER_ADLS_RESOURCE_GROUP=
+BDC_DOWNLOADER_STORAGE_ACCOUNT_NAME=
+BDC_DOWNLOADER_TENANT_ID=
+BDC_DOWNLOADER_BEHAVE_COOKIE_DEV=
+BDC_DOWNLOADER_BEHAVE_COOKIE_PROD=
+BDC_DOWNLOADER_BEHAVE_USER=MY_EMEA_NAME
+BDC_DOWNLOADER_BEHAVE_EMAIL=
+```
 
-2.  Push your updated `_config.yml` to your site on GitHub.
+After setting the .env variables you should be able to start the db and maildev containers with
+`bdc start-containers`. The db files are linked to a volume in `devtools/db/db-volume`.
 
-3.  In your newly created repo on GitHub:
-    - go to the `Settings` tab -> `Pages` -> `Build and deployment`, then select `Source`: `GitHub Actions`.
-    - if there were any failed Actions, go to the `Actions` tab and click on `Re-run jobs`.
+## Helpful Tools
 
-## Building and previewing your site locally
+- [Azure Storage Explorer](https://azure.microsoft.com/en-us/products/storage/storage-explorer)
+- [Vector MDF Validator](https://www.vector.com/int/en/support-downloads/download-center/#product=%5B%22109%22%5D&downloadType=%5B%22freeware%22%5D&tab=1&pageSize=15&sort=date&order=desc)
 
-Assuming [Jekyll] and [Bundler] are installed on your computer:
+## Usage
 
-1.  Change your working directory to the root directory of your site.
+For development:
 
-2.  Run `bundle install`.
+```sh
+uvicorn --app-dir src bdc_downloader.application:app --host 127.0.0.1 --reload
+```
 
-3.  Run `bundle exec jekyll serve` to build your site and preview it at `localhost:4000`.
+or right click src/bdc_downloader/application.py in pycharm and select run or debug.
 
-    The built site is stored in the directory `_site`.
+## Test API / Swagger Documentation
 
-## Publishing your built site on a different platform
+See `http://127.0.0.1:8000/`
 
-Just upload all the files in the directory `_site`.
+## Documentation
 
-## Customization
+To create the Sphinx documentation:
 
-You're free to customize sites that you create with this template, however you like!
+```sh
+pip install -e .[doc]
+cd docs
+```
 
-[Browse our documentation][Just the Docs] to learn more about how to use this theme.
+Either install make (depends on your OS) and call:
 
-## Hosting your docs from an existing project repo
+```sh
+make html
+```
 
-You might want to maintain your docs in an existing project repo. Instead of creating a new repo using the [just-the-docs template](https://github.com/just-the-docs/just-the-docs-template), you can copy the template files into your existing repo and configure the template's Github Actions workflow to build from a `docs` directory. You can clone the template to your local machine or download the `.zip` file to access the files.
+or call this w/o make:
 
-### Copy the template files
+```sh
+sphinx-build -b html -d ..\build\sphinx\doctrees . .\build\sphinx\html
+```
 
-1.  Create a `.github/workflows` directory at your project root if your repo doesn't already have one. Copy the `pages.yml` file into this directory. GitHub Actions searches this directory for workflow files.
+To view the docs see:
 
-2.  Create a `docs` directory at your project root and copy all remaining template files into this directory.
+```sh
+docs\build\sphinx\html\index.html
+```
 
-### Modify the GitHub Actions workflow
+## Logging
 
-The GitHub Actions workflow that builds and deploys your site to Github Pages is defined by the `pages.yml` file. You'll need to edit this file to that so that your build and deploy steps look to your `docs` directory, rather than the project root.
+We use [Loguru](https://github.com/Delgan/loguru) instead of standard python logging.  
+The individual actors log to proper logfiles which can be configured in `common/configuration.py`.
+To use the loguru logger you do **not** need to call getLogger("some_name"). The system automatically
+knows the context in which it is running. So all you need call is this:
 
-1.  Set the default `working-directory` param for the build job.
+```py
+from loguru import logger
 
-    ```yaml
-    build:
-      runs-on: ubuntu-latest
-      defaults:
-        run:
-          working-directory: docs
-    ```
+logger.info("This is an info")
+logger.warning("This is a warning")
+```
 
-2.  Set the `working-directory` param for the Setup Ruby step.
+To log additional context variables you can add them as keyword parameter to the call:
 
-    ```yaml
-    - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-          cache-version: 0
-          working-directory: '${{ github.workspace }}/docs'
-    ```
+```python
+logger.info("This is an info w/ variables", user="KNAPF", session_id=42)
 
-3.  Set the path param for the Upload artifact step:
+context: dict = {"foo": "bar", "gaga": "banane"}
+logger.info("This is an info w/ variables from a dictionary", **context)
+```
 
-    ```yaml
-    - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/_site/
-    ```
+The log is automatically written to the corresponding logfile:
 
-4.  Modify the trigger so that only changes within the `docs` directory start the workflow. Otherwise, every change to your project (even those that don't affect the docs) would trigger a new site build and deploy.
+```log
+2022-05-13 08:56.25 |INFO   |234ABC123|routers.infos:get_health:22   - This is an info
+2022-05-13 08:56.25 |WARNING|234ABC123|routers.infos:get_health:23   - This is a warning
+2022-05-13 08:56.25 |INFO   |234ABC123|routers.infos:get_health:24   - This is an info w/ variables {"user": "KNAPF", "session_id": 42}
+2022-05-13 08:56.25 |INFO   |234ABC123|routers.infos:get_health:27   - This is an info w/ variables from a dictionary {"foo": "bar", "gaga": "banane"}
+```
 
-    ```yaml
-    on:
-      push:
-        branches:
-          - "main"
-        paths:
-          - "docs/**"
-    ```
+The 3rd column contains a shortened concatenation of the following values:
 
-## Licensing and Attribution
+- orderID: last three digits of the orderID
+- jobID: the first three digits of the JobID
+- warpJobID: the first three digits of the warpJobID
 
-This repository is licensed under the [MIT License]. You are generally free to reuse or extend upon this code as you see fit; just include the original copy of the license (which is preserved when you "make a template"). While it's not necessary, we'd love to hear from you if you do use this template, and how we can improve it for future use!
+To set those values you need to bind the context to the logger once available:
 
-The deployment GitHub Actions workflow is heavily based on GitHub's mixed-party [starter workflows]. A copy of their MIT License is available in [actions/starter-workflows].
+```py
+with logger.contextualize(orderID="1234", jobID="ABCD",  warpJobId=1234):
+    logger.info("This is message")
+```
 
-----
+Furthermore, you can track the process and thread ID as well as the count of the actor instances,
+e.g. if you have two scheduler running in parallel the first one is 0 and the 2nd one the 1.
+To track those values you need to set `track_pid` to True in the common/configuration.py:
 
-[^1]: [It can take up to 10 minutes for changes to your site to publish after you push the changes to GitHub](https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/creating-a-github-pages-site-with-jekyll#creating-your-site).
+```py
+self.LOG_FILES = {
+    "default": {"filename": "backend"},
+    "house_keeping": {"filename": "housekeeping"},
+    "scheduler": {"filename": "scheduler", "track_pid": True},
+    "streaming_handler": {"filename": "streaminghandler", "track_pid": True},
+}
+```
 
-[Jekyll]: https://jekyllrb.com
-[Just the Docs]: https://just-the-docs.github.io/just-the-docs/
-[GitHub Pages]: https://docs.github.com/en/pages
-[GitHub Pages / Actions workflow]: https://github.blog/changelog/2022-07-27-github-pages-custom-github-actions-workflows-beta/
-[Bundler]: https://bundler.io
-[use this template]: https://github.com/just-the-docs/just-the-docs-template/generate
-[`jekyll-default-layout`]: https://github.com/benbalter/jekyll-default-layout
-[`jekyll-seo-tag`]: https://jekyll.github.io/jekyll-seo-tag
-[MIT License]: https://en.wikipedia.org/wiki/MIT_License
-[starter workflows]: https://github.com/actions/starter-workflows/blob/main/pages/jekyll.yml
-[actions/starter-workflows]: https://github.com/actions/starter-workflows/blob/main/LICENSE
+results in:
+
+```log
+streaminghandler.log:2022-05-23 18:51.30|   ...   |StreamHandler: done. {"APT": "1/2034/139707587905344"}
+```
+
+where A=ActorID,P=ProcessID,T=ThreadID.
+
+**Note**: Azure Application Insights logging is currently disabled. Waiting for a decision on how to proceed.
+
+## Testing
+
+### Unit-Tests
+
+To run the all tests
+
+```sh
+pip install -e .[test]
+tox
+```
+
+calls the following commands which can also can be invoked individually:
+
+```sh
+tox -e test           # run pytest
+tox -e isort          # sort import order
+tox -e flake8         # style guide enforcment
+tox -e black          # code formatter
+tox -e bandit         # security linter
+```
+
+To get a coverage map to check if all your methods are covered by your tests run the following command:
+
+```sh
+tox -e coverage
+```
+
+After this command you can find the result in:
+
+```sh
+tests/coverage_html_report/index.html
+```
+
+### End-To-End Tests
+
+End-To-End-Tests are executed with the [behave framework](https://behave.readthedocs.io/en/stable/).
+All tests are located in the folder `features`. The human-readable test descriptions are all files
+with the file ending `.feature`. All functions linked to the human-readable descriptions can be
+found in `features/steps`.
+In order for the behave framework to find all functions, it is necessary to import them in
+`features/steps/all_steps.py`.
+Steps (functions linked to descriptions) which are used by multiple tests should be placed in `features/steps/common_steps.py`.
+Other shared code/functions which are used by multiple tests should be placed in `features/steps/environment.py`.
+Entity specific steps and code are placed in separate folders, i.e. `features/steps/orders_steps`.
+Make sure to set your environment variables (set them or place them in .env file - loaded with python-dotenv).
+Test downloads are saved in the folder `features/downloads`.
+
+### Run tests
+
+**Run all scenarios of a feature**:
+
+- execute: `behave features/<NAME_OF_FEATURE>.feature`
+- example: `behave features/orders_crud.feature`
+
+**Run one scenario of a feature**:
+
+- execute: `behave features/<NAME_OF_FEATURE>.feature -n "<NAME_OF_SCENARIO>`
+- example: `behave features/orders_crud.feature -n "Delete order`
+
+**Run scenarios using tags**:
+
+- execute: `behave --tags=<@TAG1>,<@TAG2>`
+- example: `behave --tags=@order`
+
+see [behave.ini](./behave.ini) for available tags and additional options.
+
+#### Behave against dev env
+
+Set the `env=DEV` behave variables in [behave.ini](./behave.ini).
+**Note**: In order to get arrafinity_cookie, open the dev or prod url in your
+browser, make a request and open dev tools, tab headers and copy everything after `Cookie: ARRAffinity=`
+and use this inside .env file.
+
+### Locust Tests
+
+[Locust](https://locust.io/) (Load & Performance) Test are executed with the following framework: `https://locust.io`.
+All tests are located in the folder `tests/locust`.
+
+#### Setup locust
+
+- `pip install -e .[dev]`
+- set the following env variables on local env (copy and paste the cookie value from azure using developer tools on the browser, ex: ARRAffinity=xxxxxxxxxx)
+  - BDC_DOWNLOADER_BEHAVE_COOKIE_DEV
+  - BDC_DOWNLOADER_BEHAVE_COOKIE_PROD
+
+#### Run locust
+
+- open terminal
+- source .env file
+- go to ./tests/locust
+- run the following command:
+  - locust
+  - Go to http://localhost:8089/ on browser to see the UI
+  - Enter the following values:
+    - Number of users, e.g. 1
+    - Spawn rate, e.g. 1
+    - Host, e.g. https://rd-eu-web-dev-downloader.azurewebsites.net
+      <br>**Note**: the host URL must be **without** trailing slash.
